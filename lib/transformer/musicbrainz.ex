@@ -15,11 +15,16 @@ defmodule Grimoire.Transformer.Musicbrainz do
   end
 
   def process_albums_response(api_response) do
-    Enum.map(api_response, &album_to_triples/1)
+    api_response |>
+    Enum.map(fn x ->
+      Task.async(fn -> album_to_triples(x) end)
+    end) |>
+    Enum.map(&Task.await/1)
   end
 
   def album_to_triples(record) do
-    filename = String.replace(Map.get(record, "title", UUID.uuid4()), " ", "_")
+    filename = String.replace(Map.get(record, "title", UUID.uuid4()), " ", "_") <> "|" <> Map.get(record, "id")
+    IO.puts("Writing #{filename}")
     File.write("/tmp/#{filename}.json", Jason.encode!(record))
   end
 end

@@ -3,6 +3,6 @@ defmodule GrimoireTest do
   doctest Grimoire
 
   test "greets the world" do
-    Grimoire.main()
+    Grimoire.main("")
   end
 end
