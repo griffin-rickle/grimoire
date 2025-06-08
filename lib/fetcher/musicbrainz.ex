@@ -19,8 +19,8 @@ defmodule Grimoire.Fetcher.MusicBrainz do
   defp try_fetch(parent, genre, transform_pid, offset \\ nil) do
     query = URI.encode("tag:#{genre}")
     url = case offset do
-      nil -> "#{@base_url}/recording?query=#{query}&fmt=json"
-      _ -> "#{@base_url}/recording?query=#{query}&fmt=json&offset=#{offset}"
+      nil -> "#{@base_url}/recording?query=#{query}&fmt=json&sort=name"
+      _ -> "#{@base_url}/recording?query=#{query}&fmt=json&sort=name&offset=#{offset}"
     end
 
     headers = [
