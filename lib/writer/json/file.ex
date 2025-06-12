@@ -1,6 +1,6 @@
 
 require Logger
-defmodule Grimoire.Writer.FileWriter do
+defmodule Grimoire.Writer.Json.File do
   def start(parent) do
     spawn(fn -> loop(parent) end)
   end
@@ -33,7 +33,7 @@ defmodule Grimoire.Writer.FileWriter do
   def write_record(parent, base_dir, record, id_path) do
     filename = case ExJSONPath.eval(record, id_path) do
       {:ok, v_id} -> v_id
-      {:error, reason} -> send(parent, {:write_error, [record], id_path, reason})
+      {:error, reason} -> send(parent, {:write_error, record, id_path, reason})
     end
     filepath = "#{base_dir}/#{filename}.json"
     File.write("#{filepath}", Jason.encode!(record))

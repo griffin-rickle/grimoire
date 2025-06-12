@@ -24,7 +24,11 @@ defmodule Grimoire.MixProject do
     [
       {:rdf, "~> 2.1"},
       {:exjsonpath, "~> 0.1"},
-      {:elixir_uuid, "~> 1.2"}
+      {:elixir_uuid, "~> 1.2"},
+      {:nimble_csv, "~> 1.2"},
+      {:sparql_client, "~> 0.3"},
+      {:req, "~> 0.4"},
+      {:bypass, "~> 2.1", only: :test},
     ]
   end
 end
