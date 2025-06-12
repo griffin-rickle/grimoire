@@ -22,16 +22,17 @@ defmodule Grimoire.Pipeline.Destination.GraphPusher do
         other -> to_string(other)
       end
   
-    "#{subject} #{predicate} #{object} .\n"
+    "#{subject} #{predicate} #{object} ."
   end
 
   defp push_to_endpoint(triples, endpoint) do
     flat_triples = List.flatten(triples)
       |> Enum.map(&triple_to_string(&1))
+      |> Enum.join("\n")
 
     Req.post!(
       url: endpoint,
-      headers: [@auth, {"Content-Type", "application/sparql-update"}],
+      headers: [@auth, {"Content-Type", "text/turtle"}],
       body: flat_triples
     )
   end

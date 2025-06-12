@@ -29,6 +29,7 @@ defmodule Grimoire.MixProject do
       {:sparql_client, "~> 0.3"},
       {:req, "~> 0.4"},
       {:bypass, "~> 2.1", only: :test},
+      {:retry, "~> 0.17"},
     ]
   end
 end
