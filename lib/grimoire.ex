@@ -12,6 +12,7 @@ defmodule Grimoire do
     Application.ensure_all_started(:inets)
     Application.ensure_all_started(:ssl)
     Application.ensure_all_started(:public_key)
+    Application.ensure_all_started(:retry)
     # Start the GenServer
     {:ok, pid} =
       Grimoire.Pipeline.start_link(

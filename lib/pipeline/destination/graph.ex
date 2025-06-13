@@ -1,3 +1,4 @@
+use Retry
 defmodule Grimoire.Pipeline.Destination.GraphPusher do
 
   @endpoint "http://localhost:3030/mb/data"
@@ -30,11 +31,13 @@ defmodule Grimoire.Pipeline.Destination.GraphPusher do
       |> Enum.map(&triple_to_string(&1))
       |> Enum.join("\n")
 
-    Req.post!(
-      url: endpoint,
-      headers: [@auth, {"Content-Type", "text/turtle"}],
-      body: flat_triples
-    )
+    retry with: exponential_backoff() |> randomize |> expiry(10_000), rescue_only: [Req.TransportError] do
+       Req.post!(
+         url: endpoint,
+         headers: [@auth, {"Content-Type", "text/turtle"}],
+         body: flat_triples
+       )
+    end
   end
 end
 

@@ -23,7 +23,7 @@ defmodule Grimoire.Pipeline do
       |> Stream.map(fn x -> Enum.zip(headers, x) |> Map.new() end)
       |> Stream.map(&CsvToRdf.to_triples(&1, subject_key))
       |> Stream.chunk_every(batch_size)
-      |> Task.async_stream(&GraphPusher.push(&1, nil), max_concurrency: 4)
+      |> Task.async_stream(&GraphPusher.push(&1, nil), max_concurrency: 4, timeout: 30_000)
       |> Stream.run()
 
     {:stop, :normal, state}

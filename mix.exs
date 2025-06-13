@@ -15,7 +15,7 @@ defmodule Grimoire.MixProject do
   # Run "mix help compile.app" to learn about applications.
   def application do
     [
-      extra_applications: [:logger, :inets, :public_key]
+      extra_applications: [:logger, :inets, :public_key, :retry]
     ]
   end
 
@@ -29,7 +29,7 @@ defmodule Grimoire.MixProject do
       {:sparql_client, "~> 0.3"},
       {:req, "~> 0.4"},
       {:bypass, "~> 2.1", only: :test},
-      {:retry, "~> 0.17"},
+      {:retry, "~> 0.18"},
     ]
   end
 end
