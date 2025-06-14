@@ -1,3 +1,4 @@
+require Logger
 alias Grimoire.Pipeline.Destination.GraphPusher
 alias Grimoire.Pipeline.Source.CsvStream
 alias Grimoire.Pipeline.Transform.CsvToRdf
@@ -16,16 +17,30 @@ defmodule Grimoire.Pipeline do
 
   @impl true
   def handle_info({:start_pipeline, path, batch_size, subject_key}, state) do
-    {headers, data_stream} = File.stream!(path)
-      |> CsvStream.stream()
+      {headers, data_stream} =
+        File.stream!(path)
+        |> CsvStream.stream()
     
-    data_stream
-      |> Stream.map(fn x -> Enum.zip(headers, x) |> Map.new() end)
-      |> Stream.map(&CsvToRdf.to_triples(&1, subject_key))
-      |> Stream.chunk_every(batch_size)
-      |> Task.async_stream(&GraphPusher.push(&1, nil), max_concurrency: 4, timeout: 30_000)
-      |> Stream.run()
+      tasks =
+        data_stream
+        |> Stream.map(fn x -> Enum.zip(headers, x) |> Map.new() end)
+        |> Stream.map(&CsvToRdf.to_triples(&1, subject_key))
+        |> Stream.chunk_every(batch_size)
+        |> Enum.map(fn batch ->
+          Task.Supervisor.async(Grimoire.TaskSupervisor, fn ->
+            start = System.monotonic_time(:millisecond)
 
-    {:stop, :normal, state}
+            GraphPusher.push(batch, nil)
+            
+            duration = System.monotonic_time(:millisecond) - start
+            Logger.info("Pushed batch of #{length(batch)} triples in #{duration}ms")
+          end)
+        end)
+    
+      Enum.each(tasks, fn task ->
+        Task.await(task, 60_000)
+      end)
+    
+      {:stop, :normal, state}
   end
 end

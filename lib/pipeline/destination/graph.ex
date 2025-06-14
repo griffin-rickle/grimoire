@@ -34,7 +34,8 @@ defmodule Grimoire.Pipeline.Destination.GraphPusher do
     retry with: exponential_backoff() |> randomize |> expiry(10_000), rescue_only: [Req.TransportError] do
        Req.post!(
          url: endpoint,
-         headers: [@auth, {"Content-Type", "text/turtle"}],
+         finch: GrimoireFinch,
+         headers: [@auth, {"Content-Type", "text/turtle; charset=utf-8"}, {"Connection", "close"}],
          body: flat_triples
        )
     end

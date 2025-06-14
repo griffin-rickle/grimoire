@@ -1,4 +1,3 @@
-alias Grimoire.Pipeline
 require Logger
 defmodule Grimoire do
   @moduledoc """
@@ -13,11 +12,21 @@ defmodule Grimoire do
     Application.ensure_all_started(:ssl)
     Application.ensure_all_started(:public_key)
     Application.ensure_all_started(:retry)
+
+    {:ok, _} = Finch.start_link(
+      name: GrimoireFinch,
+      pools: %{
+        default: [size: 100, count: 10]
+      }
+    )
+
+    {:ok, _sup_pid} = Task.Supervisor.start_link(name: Grimoire.TaskSupervisor)
+
     # Start the GenServer
     {:ok, pid} =
       Grimoire.Pipeline.start_link(
         csv_path: "/opt/grimoire-data/musicbrainz-canonical-dump-20250603-080003/canonical/canonical_musicbrainz_data.csv",
-        batch_size: 100,
+        batch_size: 1000,
         subject_key: "recording_mbid"
       )
 
@@ -26,6 +35,7 @@ defmodule Grimoire do
 
     receive do
       {:DOWN, ^ref, :process, ^pid, _reason} ->
+        IO.puts("Pipeline succeeded")
         :ok
     end   
   end
