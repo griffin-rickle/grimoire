@@ -1,8 +1,33 @@
-use Retry
 defmodule Grimoire.Pipeline.Destination.GraphPusher do
+  use Retry
+  use GenStage
+  alias Grimoire.Pipeline.Source.Batcher
+  require Logger
 
   @endpoint "http://localhost:3030/mb/data"
   @auth {"Authorization", "Basic " <> Base.encode64("admin:")}
+
+  def start_link(opts), do: GenStage.start_link(__MODULE__, opts, name: __MODULE__)
+
+  def init(rate_config) do
+    {:consumer, rate_config, subscribe_to: [Batcher]}
+  end
+
+  def handle_events(batches, _from, rate) do
+    Enum.each(batches, fn batch ->
+      start = System.monotonic_time(:millisecond)
+      push(batch, nil)
+
+      duration = System.monotonic_time(:millisecond) - start
+      Logger.info("Batch of #{length(batch)} pushed in #{duration} ms")
+
+      if duration < rate.min_interval do
+        sleep = rate.min_interval - duration
+        :timer.sleep(sleep)
+      end
+    end)
+    {:noreply, [], rate}
+  end
 
   def push(triples, endpoint) when is_binary(endpoint) do
     push_to_endpoint(triples, endpoint)
@@ -36,7 +61,10 @@ defmodule Grimoire.Pipeline.Destination.GraphPusher do
          url: endpoint,
          finch: GrimoireFinch,
          headers: [@auth, {"Content-Type", "text/turtle; charset=utf-8"}, {"Connection", "close"}],
-         body: flat_triples
+         body: flat_triples,
+         # connect_options: [timeout: 15_000],
+         receive_timeout: 30_000,
+         pool_timeout: 10_000
        )
     end
   end

@@ -3,6 +3,10 @@ defmodule Grimoire do
   @moduledoc """
   Documentation for `Grimoire`.
   """
+alias Grimoire.Pipeline.Destination.GraphPusher
+alias Grimoire.Pipeline.Source.Batcher
+alias Grimoire.Pipeline.Transform.CsvToRdf
+alias Grimoire.Pipeline
 
   @doc """
   Hello world.
@@ -20,23 +24,32 @@ defmodule Grimoire do
       }
     )
 
-    {:ok, _sup_pid} = Task.Supervisor.start_link(name: Grimoire.TaskSupervisor)
+    consumer = start_pipeline(
+      "/opt/grimoire-data/musicbrainz-canonical-dump-20250603-080003/canonical/canonical_musicbrainz_data.csv",
+      1000,
+      120
+    )
 
-    # Start the GenServer
-    {:ok, pid} =
-      Grimoire.Pipeline.start_link(
-        csv_path: "/opt/grimoire-data/musicbrainz-canonical-dump-20250603-080003/canonical/canonical_musicbrainz_data.csv",
-        batch_size: 1000,
-        subject_key: "recording_mbid"
-      )
-
-    # Monitor the process to wait until it completes
-    ref = Process.monitor(pid)
+    ref = Process.monitor(consumer)
 
     receive do
-      {:DOWN, ^ref, :process, ^pid, _reason} ->
-        IO.puts("Pipeline succeeded")
+      {:DOWN, ^ref, :process, ^consumer, reason} ->
+        Logger.info("Pipeline finished with reason: #{inspect(reason)}")
         :ok
-    end   
+    end
+  end
+
+  def start_pipeline(path, batch_size, rpm_target) do
+    rate = %{min_interval: div(60_000_000, rpm_target)} # μs between batches
+    {:ok, producer} = Pipeline.start_link(path)
+    {:ok, transformer} = CsvToRdf.start_link()
+    {:ok, batcher} = Batcher.start_link(batch_size)
+    {:ok, consumer} = GraphPusher.start_link(rate)
+  
+    GenStage.sync_subscribe(transformer, to: producer)
+    GenStage.sync_subscribe(batcher, to: transformer)
+    GenStage.sync_subscribe(consumer, to: batcher)
+
+    consumer
   end
 end

@@ -30,6 +30,7 @@ defmodule Grimoire.MixProject do
       {:req, "~> 0.4"},
       {:bypass, "~> 2.1", only: :test},
       {:retry, "~> 0.18"},
+      {:gen_stage, "~> 1.0"},
     ]
   end
 end
