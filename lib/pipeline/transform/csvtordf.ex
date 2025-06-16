@@ -6,9 +6,10 @@ defmodule Grimoire.Pipeline.Transform.CsvToRdf do
 
   def start_link(), do: GenStage.start_link(__MODULE__, :ok, name: __MODULE__)
 
-  def init(:ok), do: {:producer_consumer, :ok, subscribe_to: [Pipeline]}
+  def init(:ok), do: {:producer_consumer, :ok, subscribe_to: [{Pipeline, max_demand: 500, min_demand: 100}]}
 
   def handle_events(lines, _from, state) do
+    Logger.debug("Handling events in CsvToRdf")
     triples = Enum.map(lines, &to_triples(&1, "recording_mbid"))
     {:noreply, List.flatten(triples), state}
   end

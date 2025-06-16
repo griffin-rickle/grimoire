@@ -1,3 +1,4 @@
+require Logger
 defmodule Grimoire.Pipeline.Destination.GraphPusher do
   use Retry
   use GenStage
@@ -10,10 +11,11 @@ defmodule Grimoire.Pipeline.Destination.GraphPusher do
   def start_link(opts), do: GenStage.start_link(__MODULE__, opts, name: __MODULE__)
 
   def init(rate_config) do
-    {:consumer, rate_config, subscribe_to: [Batcher]}
+    {:consumer, rate_config, subscribe_to: [{Batcher, max_demand: 5000, min_demand: 2500}]}
   end
 
   def handle_events(batches, _from, rate) do
+    Logger.debug("Handling events in GraphPusher")
     Enum.each(batches, fn batch ->
       start = System.monotonic_time(:millisecond)
       push(batch, nil)
@@ -21,10 +23,11 @@ defmodule Grimoire.Pipeline.Destination.GraphPusher do
       duration = System.monotonic_time(:millisecond) - start
       Logger.info("Batch of #{length(batch)} pushed in #{duration} ms")
 
-      if duration < rate.min_interval do
-        sleep = rate.min_interval - duration
-        :timer.sleep(sleep)
-      end
+      # if duration < rate.min_interval do
+      #   sleep = rate.min_interval - duration
+      #   Logger.debug("sleeping for #{inspect(sleep)}")
+      #   :timer.sleep(sleep)
+      # end
     end)
     {:noreply, [], rate}
   end
@@ -56,17 +59,18 @@ defmodule Grimoire.Pipeline.Destination.GraphPusher do
       |> Enum.map(&triple_to_string(&1))
       |> Enum.join("\n")
 
-    retry with: exponential_backoff() |> randomize |> expiry(10_000), rescue_only: [Req.TransportError] do
+    # retry with: exponential_backoff() |> randomize |> expiry(10_000), rescue_only: [Req.TransportError] do
        Req.post!(
          url: endpoint,
          finch: GrimoireFinch,
-         headers: [@auth, {"Content-Type", "text/turtle; charset=utf-8"}, {"Connection", "close"}],
-         body: flat_triples,
+         headers: [@auth, {"Content-Type", "text/turtle; charset=utf-8"}],
+         body: flat_triples
          # connect_options: [timeout: 15_000],
-         receive_timeout: 30_000,
-         pool_timeout: 10_000
+         # receive_timeout: 30_000,
+         # pool_timeout: 10_000
        )
-    end
+    Logger.debug("GraphPusher finished sending triples!")
+    # end
   end
 end
 

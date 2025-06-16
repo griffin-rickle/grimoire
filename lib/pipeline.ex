@@ -18,6 +18,7 @@ defmodule Grimoire.Pipeline do
 
   @impl true
   def handle_demand(demand, %{headers: headers, data_stream: data_stream} = state) when demand > 0 do
+    Logger.debug("Handling demand in Pipeline source")
     events = data_stream
       |> Stream.take(demand)
       |> Stream.map(fn x -> Enum.zip(headers, x) |> Map.new() end)
