@@ -17,7 +17,7 @@ defmodule Grimoire.Stages.Source.CSV_Source do
   
   @impl true
   def handle_demand(demand, %{data_stream: data_stream} = state) when demand > 0 do
-    Logger.debug("Handling demand in Musicbrainz pipeline source")
+    Logger.debug("Handling demand in CSV pipeline source")
     events = Enum.take(data_stream, demand)
     new_stream = Stream.drop(data_stream, demand)
 
