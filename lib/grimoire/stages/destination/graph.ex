@@ -4,8 +4,9 @@ defmodule Grimoire.Stages.Destination.Graph do
   use GenStage
   require Logger
 
-  @endpoint "http://localhost:3030/mb/data"
-  @auth {"Authorization", "Basic " <> Base.encode64("admin:")}
+  defp config do
+    Application.get_env(:grimoire, __MODULE__)
+  end
 
   def start_link(opts) do
     [name: name] = opts
@@ -34,7 +35,8 @@ defmodule Grimoire.Stages.Destination.Graph do
   end
 
   def push(triples, endpoint) when is_nil(endpoint) do
-    push_to_endpoint(triples, @endpoint)
+    default_url = Keyword.fetch!(config(), :endpoint)
+    push_to_endpoint(triples, default_url)
   end
 
   defp triple_to_string({s, p, o}) do
@@ -52,22 +54,21 @@ defmodule Grimoire.Stages.Destination.Graph do
   end
 
   defp push_to_endpoint(triples, endpoint) do
+    auth = Keyword.fetch!(config(), :auth)
     flat_triples = List.flatten(triples)
       |> Enum.map(&triple_to_string(&1))
       |> Enum.join("\n")
 
-    # retry with: exponential_backoff() |> randomize |> expiry(10_000), rescue_only: [Req.TransportError] do
-       Req.post!(
-         url: endpoint,
-         finch: GrimoireFinch,
-         headers: [@auth, {"Content-Type", "text/turtle; charset=utf-8"}],
-         body: flat_triples
-         # connect_options: [timeout: 15_000],
-         # receive_timeout: 30_000,
-         # pool_timeout: 10_000
-       )
-    Logger.debug("GraphPusher finished sending triples!")
-    # end
+    try do
+      Req.post!(
+        url: endpoint,
+        finch: GrimoireFinch,
+        headers: [auth, {"Content-Type", "text/turtle; charset=utf-8"}],
+        body: flat_triples
+      )
+    rescue
+      _ -> Logger.error("An error occurred when pushing to graph!")
+    end
   end
 end
 
