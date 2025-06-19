@@ -19,3 +19,10 @@ Documentation can be generated with [ExDoc](https://github.com/elixir-lang/ex_do
 and published on [HexDocs](https://hexdocs.pm). Once published, the docs can
 be found at <https://hexdocs.pm/grimoire>.
 
+## Running the Musicbrainz Pipeline
+
+```bash
+export TRIPLE_STORE_ENDPOINT="http://localhost:3030/mb/data"
+export TRIPLE_STORE_BASIC="$(echo -n 'admin:secret' | base64)"
+```
+
