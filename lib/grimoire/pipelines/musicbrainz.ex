@@ -15,7 +15,7 @@ defmodule Grimoire.Pipelines.Musicbrainz do
     children = [
       {CSV_Source, [name: :csv_source, csv_path: "/opt/grimoire-data/musicbrainz-canonical-dump-20250603-080003/canonical/canonical_musicbrainz_data.csv"]},
       {To_RDF, [name: :to_rdf]},
-      {Batcher, [name: :batcher, batch_size: 1000]},
+      {Batcher, [name: :batcher, batch_size: 10000]},
       {Graph, [name: :graph]}
     ]
     opts = [strategy: :one_for_one, name: Grimoire.PipelineSupervisor]
@@ -24,9 +24,9 @@ defmodule Grimoire.Pipelines.Musicbrainz do
 
     # Dynamically subscribe the pipeline
     Logger.info("Subscribing pipeline stages...")
-    GenStage.sync_subscribe(:to_rdf, to: :csv_source)
-    GenStage.sync_subscribe(:batcher, to: :to_rdf)
-    GenStage.sync_subscribe(:graph, to: :batcher)
+    GenStage.sync_subscribe(:to_rdf, to: :csv_source, max_demand: 10_000, min_demand: 7500)
+    GenStage.sync_subscribe(:batcher, to: :to_rdf, max_demand: 10_000, min_demand: 7500)
+    GenStage.sync_subscribe(:graph, to: :batcher, max_demand: 10_000, min_demand: 7500)
     Logger.info("Finished subscribing pipeline stages...")
 
     Logger.info("Source: #{inspect(Process.whereis(:csv_source))}")
