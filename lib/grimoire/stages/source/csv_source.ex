@@ -9,7 +9,6 @@ defmodule Grimoire.Stages.Source.CSV_Source do
 
   @impl true
   def init({:producer, csv_path: csv_path}) do
-    Logger.info("#{inspect(csv_path)}")
     data_stream = File.stream!(csv_path)
     |> CSV_File.stream_with_headers()
 

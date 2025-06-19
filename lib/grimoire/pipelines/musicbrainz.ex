@@ -1,6 +1,7 @@
 defmodule Grimoire.Pipelines.Musicbrainz do
   use GenServer
   require Logger
+  alias Grimoire.Config.PipelineConfig
   alias Grimoire.Stages.Source.CSV_Source
   alias Grimoire.Stages.Transform.To_RDF
   alias Grimoire.Stages.Batcher
@@ -12,10 +13,14 @@ defmodule Grimoire.Pipelines.Musicbrainz do
   def init(_opts) do
     Logger.info("Starting musicbrainz pipeline")
 
+    config = PipelineConfig.load(:musicbrainz)
+    Logger.debug("CSV Path: #{config.csv_path}")
+    Logger.debug("Batch Size: #{config.batch_size}")
+
     children = [
-      {CSV_Source, [name: :csv_source, csv_path: "/opt/grimoire-data/musicbrainz-canonical-dump-20250603-080003/canonical/canonical_musicbrainz_data.csv"]},
+      {CSV_Source, [name: :csv_source, csv_path: config.csv_path]},
       {To_RDF, [name: :to_rdf]},
-      {Batcher, [name: :batcher, batch_size: 10000]},
+      {Batcher, [name: :batcher, batch_size: config.batch_size]},
       {Graph, [name: :graph]}
     ]
     opts = [strategy: :one_for_one, name: Grimoire.PipelineSupervisor]
