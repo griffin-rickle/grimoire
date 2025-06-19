@@ -15,6 +15,7 @@ defmodule Grimoire.MixProject do
   # Run "mix help compile.app" to learn about applications.
   def application do
     [
+      mod: {Grimoire.Application, []},
       extra_applications: [:logger, :inets, :public_key, :retry]
     ]
   end

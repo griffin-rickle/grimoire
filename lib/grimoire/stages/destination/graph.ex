@@ -1,17 +1,20 @@
 require Logger
-defmodule Grimoire.Pipeline.Destination.GraphPusher do
+defmodule Grimoire.Stages.Destination.Graph do
   use Retry
   use GenStage
-  alias Grimoire.Pipeline.Source.Batcher
   require Logger
 
   @endpoint "http://localhost:3030/mb/data"
   @auth {"Authorization", "Basic " <> Base.encode64("admin:")}
 
-  def start_link(opts), do: GenStage.start_link(__MODULE__, opts, name: __MODULE__)
+  def start_link(opts) do
+    [name: name] = opts
+    GenStage.start_link(__MODULE__, :ok, name: name)
+  end
 
-  def init(rate_config) do
-    {:consumer, rate_config, subscribe_to: [{Batcher, max_demand: 5000, min_demand: 2500}]}
+  def init(:ok) do
+    Logger.info("Graph Init")
+    {:consumer, :ok}
   end
 
   def handle_events(batches, _from, rate) do
@@ -22,12 +25,6 @@ defmodule Grimoire.Pipeline.Destination.GraphPusher do
 
       duration = System.monotonic_time(:millisecond) - start
       Logger.info("Batch of #{length(batch)} pushed in #{duration} ms")
-
-      # if duration < rate.min_interval do
-      #   sleep = rate.min_interval - duration
-      #   Logger.debug("sleeping for #{inspect(sleep)}")
-      #   :timer.sleep(sleep)
-      # end
     end)
     {:noreply, [], rate}
   end

@@ -1,8 +1,7 @@
-
 require Logger
-defmodule Grimoire.Pipeline.Source.CsvStream do
+defmodule Grimoire.Util.CSV_File do
 
-  def stream(stream) do
+  def stream_with_headers(stream) do
     header = stream
       |> Stream.take(1)
       |> Enum.to_list()
@@ -15,7 +14,9 @@ defmodule Grimoire.Pipeline.Source.CsvStream do
     # Can't skip headers here because we already consumed the first row of the stream when getting the headers
     data_stream = stream
       |> NimbleCSV.RFC4180.parse_stream(skip_headers: false)
+      |> Stream.map(fn x -> Enum.zip(header, x) |> Map.new() end)
 
-    {header, data_stream}
+    data_stream
   end 
 end
+

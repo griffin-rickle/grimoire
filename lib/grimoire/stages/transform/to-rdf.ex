@@ -1,20 +1,25 @@
 require Logger
-defmodule Grimoire.Pipeline.Transform.CsvToRdf do
+defmodule Grimoire.Stages.Transform.To_RDF do
   use GenStage
-  alias Grimoire.Pipeline
   alias RDF.{IRI, Literal, Triple}
 
-  def start_link(), do: GenStage.start_link(__MODULE__, :ok, name: __MODULE__)
+  def start_link(opts) do 
+    [name: name] = opts
+    GenStage.start_link(__MODULE__, :ok, name: name)
+  end
 
-  def init(:ok), do: {:producer_consumer, :ok, subscribe_to: [{Pipeline, max_demand: 500, min_demand: 100}]}
+  def init(:ok) do
+    Logger.info("To_RDF Init")
+    {:producer_consumer, :ok}
+  end
 
   def handle_events(lines, _from, state) do
-    Logger.debug("Handling events in CsvToRdf")
+    Logger.debug("Handling events in To_RDF")
     triples = Enum.map(lines, &to_triples(&1, "recording_mbid"))
     {:noreply, List.flatten(triples), state}
   end
 
-  def to_triples(record, subject_key) do
+  def to_triples(record, subject_key) when is_map(record) do
     subject_value = Map.get(record, subject_key)
     subject = IRI.new("http://grimoire.grifflab.media/resource/#{URI.encode(subject_value)}")
 
